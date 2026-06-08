@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/PayFlow.Shared.Messaging/PayFlow.Shared.Messaging.csproj" />
     <Project Path="src/Shared/PayFlow.Shared.Primitives/PayFlow.Shared.Primitives.csproj" />
   </Folder>
 </Solution>
