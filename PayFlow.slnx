@@ -1,8 +1,15 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/LedgerService/">
+    <Project Path="src/Services/LedgerService/LedgerService/LedgerService.csproj" />
+  </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/PayFlow.Shared.Messaging/PayFlow.Shared.Messaging.csproj" />
     <Project Path="src/Shared/PayFlow.Shared.Observability/PayFlow.Shared.Observability.csproj" />
     <Project Path="src/Shared/PayFlow.Shared.Primitives/PayFlow.Shared.Primitives.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LedgerService.Tests/LedgerService.Tests.csproj" />
   </Folder>
 </Solution>
