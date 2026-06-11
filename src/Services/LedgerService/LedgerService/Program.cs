@@ -6,7 +6,7 @@ using PayFlow.Shared.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddLedgerInfrastructure(
+builder.Services.AddLedgerService(
     builder.Configuration.GetConnectionString("LedgerDb")!);
 
 builder.Services.AddPayFlowTelemetry(

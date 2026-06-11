@@ -1,10 +1,13 @@
+using LedgerService.Features.CreateEntry;
+using LedgerService.Features.GetBalance;
+using LedgerService.Features.GetTransactionHistory;
 using Microsoft.EntityFrameworkCore;
 
 namespace LedgerService.Infrastructure;
 
 public static class ServiceRegistration
 {
-    public static IServiceCollection AddLedgerInfrastructure(
+    public static IServiceCollection AddLedgerService(
         this IServiceCollection services,
         string connectionString)
     {
@@ -12,6 +15,9 @@ public static class ServiceRegistration
             options.UseNpgsql(connectionString));
 
         services.AddScoped<ILedgerRepository, LedgerRepository>();
+        services.AddScoped<CreateEntryHandler>();
+        services.AddScoped<GetBalanceHandler>();
+        services.AddScoped<GetTransactionHistoryHandler>();
 
         return services;
     }
