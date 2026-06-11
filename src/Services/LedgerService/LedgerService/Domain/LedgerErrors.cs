@@ -1,5 +1,3 @@
-using PayFlow.Shared.Primitives;
-
 namespace LedgerService.Domain;
 
 public static class LedgerErrors

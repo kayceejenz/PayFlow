@@ -1,7 +1,6 @@
 <Solution>
   <Folder Name="/src/" />
-  <Folder Name="/src/Services/" />
-  <Folder Name="/src/Services/LedgerService/">
+  <Folder Name="/src/Services/">
     <Project Path="src/Services/LedgerService/LedgerService/LedgerService.csproj" />
   </Folder>
   <Folder Name="/src/Shared/">

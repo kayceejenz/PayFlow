@@ -1,5 +1,3 @@
-using PayFlow.Shared.Primitives;
-
 namespace LedgerService.Domain;
 
 public record TransactionId(Guid Value) : StronglyTypedId<Guid>(Value)

@@ -16,6 +16,7 @@ public static class GetTransactionHistoryEndpoint
                 ? Results.Ok(result.Value)
                 : Results.NotFound(new { error = result.Error.Message });
         })
-        .WithName("GetTransactionHistory");
+        .WithName("GetTransactionHistory")
+        .WithTags("Ledger");
     }
 }

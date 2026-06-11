@@ -22,7 +22,8 @@ public static class CreateEntryEndpoint
                         _ => StatusCodes.Status500InternalServerError
                     });
         })
-        .WithName("CreateLedgerEntry");
+        .WithName("CreateLedgerEntry")
+        .WithTags("Ledger");
 
         app.MapPost("/ledger/transactions", async (
             CreateEntryPairCommand command,
@@ -41,6 +42,7 @@ public static class CreateEntryEndpoint
                         _ => StatusCodes.Status500InternalServerError
                     });
         })
-        .WithName("CreateLedgerTransaction");
+        .WithName("CreateLedgerTransaction")
+        .WithTags("Ledger");
     }
 }

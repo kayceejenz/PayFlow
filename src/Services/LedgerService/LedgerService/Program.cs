@@ -13,6 +13,7 @@ builder.Services.AddPayFlowTelemetry(
     "LedgerService",
     builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
 
+builder.Services.AddSwaggerGen();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
@@ -26,12 +27,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseSwagger();
+app.UseSwaggerUI();
 
 CreateEntryEndpoint.Map(app);
 GetBalanceEndpoint.Map(app);
 GetTransactionHistoryEndpoint.Map(app);
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "LedgerService" }))
-   .WithName("HealthCheck");
+   .WithName("HealthCheck")
+   .WithTags("System");
 
 app.Run();
