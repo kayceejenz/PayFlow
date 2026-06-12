@@ -17,6 +17,10 @@ public static class GetTransactionHistoryEndpoint
                 : Results.NotFound(new { error = result.Error.Message });
         })
         .WithName("GetTransactionHistory")
-        .WithTags("Ledger");
+        .WithTags("Ledger")
+        .WithSummary("Get transaction history for an account")
+        .WithDescription("Returns all ledger entries for a given account, ordered chronologically. Includes both debit and credit entries.")
+        .Produces<GetTransactionHistoryResponse>(StatusCodes.Status200OK)
+        .ProducesProblem(StatusCodes.Status404NotFound);
     }
 }

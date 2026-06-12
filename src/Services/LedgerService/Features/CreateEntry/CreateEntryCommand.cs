@@ -1,5 +1,3 @@
-using PayFlow.Shared.Primitives;
-
 namespace LedgerService.Features.CreateEntry;
 
 public record CreateEntryCommand

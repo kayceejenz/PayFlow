@@ -23,7 +23,13 @@ public static class CreateEntryEndpoint
                     });
         })
         .WithName("CreateLedgerEntry")
-        .WithTags("Ledger");
+        .WithTags("Ledger")
+        .WithSummary("Create a single ledger entry")
+        .WithDescription("Creates a single debit or credit entry for a given account. Used for idempotent entry creation within an existing transaction context.")
+        .Produces<CreateEntryResponse>(StatusCodes.Status201Created)
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .ProducesProblem(StatusCodes.Status404NotFound)
+        .ProducesProblem(StatusCodes.Status409Conflict);
 
         app.MapPost("/ledger/transactions", async (
             CreateEntryPairCommand command,
@@ -43,6 +49,11 @@ public static class CreateEntryEndpoint
                     });
         })
         .WithName("CreateLedgerTransaction")
-        .WithTags("Ledger");
+        .WithTags("Ledger")
+        .WithSummary("Create a double-entry transaction (debit + credit)")
+        .WithDescription("Creates a balanced pair of debit and credit entries across two accounts in a single atomic operation. Guarantees double-entry integrity.")
+        .Produces<CreateEntryPairResponse>(StatusCodes.Status201Created)
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .ProducesProblem(StatusCodes.Status409Conflict);
     }
 }

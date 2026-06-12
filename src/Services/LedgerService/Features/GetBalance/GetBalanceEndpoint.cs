@@ -17,6 +17,10 @@ public static class GetBalanceEndpoint
                 : Results.NotFound(new { error = result.Error.Message });
         })
         .WithName("GetAccountBalance")
-        .WithTags("Ledger");
+        .WithTags("Ledger")
+        .WithSummary("Get account balance")
+        .WithDescription("Returns the current balance for a given account. Balance is calculated as total credits minus total debits.")
+        .Produces<GetBalanceResponse>(StatusCodes.Status200OK)
+        .ProducesProblem(StatusCodes.Status404NotFound);
     }
 }

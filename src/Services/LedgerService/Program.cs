@@ -13,7 +13,21 @@ builder.Services.AddPayFlowTelemetry(
     "LedgerService",
     builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
 
-builder.Services.AddSwaggerGen();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new()
+    {
+        Title = "PayFlow Ledger Service",
+        Description = "Event-sourced double-entry ledger with CQRS. Manages account balances and transaction history.",
+        Version = "v1",
+        Contact = new()
+        {
+            Name = "PayFlow Team",
+            Email = "team@payflow.dev"
+        }
+    });
+});
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
@@ -36,6 +50,9 @@ GetTransactionHistoryEndpoint.Map(app);
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "LedgerService" }))
    .WithName("HealthCheck")
-   .WithTags("System");
+   .WithTags("System")
+   .WithSummary("Health check endpoint")
+   .WithDescription("Returns the current health status of the LedgerService. Used by orchestration and monitoring tools.")
+   .Produces(StatusCodes.Status200OK);
 
 app.Run();

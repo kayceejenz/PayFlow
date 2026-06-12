@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using LedgerService.Domain;
 using LedgerService.Infrastructure;
+using PayFlow.Shared.Observability;
 
 namespace LedgerService.Features.CreateEntry;
 
@@ -16,6 +18,12 @@ public class CreateEntryHandler
 
     public async Task<Result<CreateEntryResponse>> HandleAsync(CreateEntryCommand command, CancellationToken ct)
     {
+        using var activity = Telemetry.ActivitySource.StartActivity("CreateEntry");
+        activity?.SetTag("account.id", command.AccountId);
+        activity?.SetTag("entry.type", command.EntryType);
+        activity?.SetTag("amount", command.Amount);
+        activity?.SetTag("currency", command.Currency);
+
         if (command.Amount <= 0)
             return Result.Failure<CreateEntryResponse>(LedgerErrors.InvalidEntry("Amount must be positive."));
 
@@ -36,6 +44,8 @@ public class CreateEntryHandler
 
         await _repository.AddEntriesAsync([entry], ct);
 
+        activity?.SetTag("entry.id", entry.Id);
+
         _logger.LogInformation(
             "Created {EntryType} entry {EntryId} for account {AccountId}, amount {Amount} {Currency}",
             entryType, entry.Id, command.AccountId, command.Amount, command.Currency);
@@ -46,6 +56,12 @@ public class CreateEntryHandler
     public async Task<Result<CreateEntryPairResponse>> HandlePairAsync(
         CreateEntryPairCommand command, CancellationToken ct)
     {
+        using var activity = Telemetry.ActivitySource.StartActivity("CreateTransaction");
+        activity?.SetTag("debit.account", command.DebitAccountId);
+        activity?.SetTag("credit.account", command.CreditAccountId);
+        activity?.SetTag("amount", command.Amount);
+        activity?.SetTag("currency", command.Currency);
+
         if (command.Amount <= 0)
             return Result.Failure<CreateEntryPairResponse>(LedgerErrors.InvalidEntry("Amount must be positive."));
 
@@ -76,6 +92,10 @@ public class CreateEntryHandler
         };
 
         await _repository.AddEntriesAsync([debitEntry, creditEntry], ct);
+
+        activity?.SetTag("transaction.id", transactionId);
+        activity?.SetTag("debit.entry.id", debitEntry.Id);
+        activity?.SetTag("credit.entry.id", creditEntry.Id);
 
         _logger.LogInformation(
             "Created transaction {TransactionId}: debit {DebitAmount} to {DebitAccount}, credit {CreditAmount} to {CreditAccount}",
