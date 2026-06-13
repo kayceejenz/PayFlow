@@ -24,3 +24,24 @@ Production fintech services rarely split into 4 assemblies per service — the c
 
 **Tradeoff:**
 Requires discipline during code review. Mitigated by NetArchTest rules that fail CI if infrastructure leaks into domain.
+
+### 002: Async Event-Driven Inter-Service Communication via Outbox
+
+**Date:** 2026-06-12
+
+**Context:**
+WalletService orchestrates top-up/transfer operations that ultimately record double-entry pairs in LedgerService. The project brief states WalletService "talks to LedgerService via events." Additionally, the outbox pattern is a listed deliverable for atomic DB + event publishing.
+
+**Options considered:**
+
+1. **Synchronous HTTP:** WalletService calls LedgerService's REST API (`POST /ledger/transactions`). Simple to build, but couples service availability and leaves the outbox pattern undemonstrated. Contradicts the "via events" design intent.
+
+2. **MassTransit Request/Response:** Sends a command via RabbitMQ and awaits a reply. Decoupled, but ties HTTP lifecycle to a message round-trip with timeout/correlation complexity. No outbox benefit.
+
+3. **MassTransit Fire-and-Forget + Outbox (chosen):** WalletService writes command data to an `outbox_messages` table in the same EF transaction as its own state change. A background `OutboxRelayService` publishes pending messages to RabbitMQ. LedgerService consumes the command and publishes a result event.
+
+**Why:**
+This decision checks three deliverables at once: async event-driven communication, the outbox pattern, and eventual consistency. The 202 Accepted + correlation ID + status endpoint pattern mirrors real fintech APIs (Stripe, Monzo). It cleanly decouples service lifecycles — if LedgerService is down, the outbox holds messages until it recovers. Adding new consumers (StatementService, NotificationService) requires zero changes to the publishing service.
+
+**Tradeoff:**
+Clients receive `202 Accepted` with a correlation ID and must poll for completion. Not suitable for synchronous low-latency flows, but acceptable for top-ups and transfers where clients expect an async confirmation. Adds infrastructure complexity (outbox table, background relay, eventual consistency guarantees).
