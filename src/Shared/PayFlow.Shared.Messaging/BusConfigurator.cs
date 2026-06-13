@@ -10,11 +10,14 @@ public static class BusConfigurator
         string host = "localhost",
         string username = "guest",
         string password = "guest",
-        string virtualHost = "/")
+        string virtualHost = "/",
+        Action<IBusRegistrationConfigurator>? configureConsumers = null)
     {
         services.AddMassTransit(busConfig =>
         {
             busConfig.SetKebabCaseEndpointNameFormatter();
+
+            configureConsumers?.Invoke(busConfig);
 
             busConfig.UsingRabbitMq((context, cfg) =>
             {
