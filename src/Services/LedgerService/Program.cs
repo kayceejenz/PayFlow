@@ -2,6 +2,8 @@ using LedgerService.Infrastructure;
 using LedgerService.Features.CreateEntry;
 using LedgerService.Features.GetBalance;
 using LedgerService.Features.GetTransactionHistory;
+using LedgerService.Consumers;
+using PayFlow.Shared.Messaging;
 using PayFlow.Shared.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,10 @@ builder.Services.AddLedgerService(
 builder.Services.AddPayFlowTelemetry(
     "LedgerService",
     builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
+
+builder.Services.AddPayFlowMessageBus(
+    builder.Configuration.GetConnectionString("RabbitMq") ?? "localhost",
+    configureConsumers: cfg => cfg.AddConsumer<CreateLedgerEntryConsumer>());
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
