@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MassTransit.RabbitMQ" Version="9.2.0" />
+    <ProjectReference Include="..\PayFlow.Shared.Primitives\PayFlow.Shared.Primitives.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PayFlow.Shared.Primitives\PayFlow.Shared.Primitives.csproj" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.2.5" />
   </ItemGroup>
 
 </Project>
