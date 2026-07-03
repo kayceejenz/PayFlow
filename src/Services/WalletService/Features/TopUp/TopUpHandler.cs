@@ -10,11 +10,16 @@ namespace WalletService.Features.TopUp;
 public class TopUpHandler
 {
     private readonly IWalletRepository _repository;
+    private readonly IFundingServiceClient _fundingClient;
     private readonly ILogger<TopUpHandler> _logger;
 
-    public TopUpHandler(IWalletRepository repository, ILogger<TopUpHandler> logger)
+    public TopUpHandler(
+        IWalletRepository repository,
+        IFundingServiceClient fundingClient,
+        ILogger<TopUpHandler> logger)
     {
         _repository = repository;
+        _fundingClient = fundingClient;
         _logger = logger;
     }
 
@@ -38,6 +43,40 @@ public class TopUpHandler
 
         if (wallet.Status == WalletStatus.Closed)
             return Result.Failure<TopUpResponse>(WalletErrors.Closed);
+
+        var idempotencyKey = command.IdempotencyKey ?? Guid.NewGuid().ToString();
+
+        var fundingRequest = new FundingChargeRequest
+        {
+            Amount = command.Amount,
+            Currency = command.Currency,
+            Reference = command.Reference
+        };
+
+        FundingChargeResponse fundingResponse;
+        try
+        {
+            fundingResponse = await _fundingClient.ChargeAsync(idempotencyKey, fundingRequest, ct);
+        }
+        catch (Exception ex)
+        {
+            activity?.SetTag("funding.error", ex.Message);
+            _logger.LogError(ex, "Funding service call failed for top-up to wallet {WalletId}", command.WalletId);
+            return Result.Failure<TopUpResponse>(Error.Unexpected("Funding service unavailable."));
+        }
+
+        if (fundingResponse.Status == "failed")
+        {
+            activity?.SetTag("funding.status", "failed");
+            _logger.LogWarning(
+                "Funding charge failed for top-up to wallet {WalletId}: {Reason}",
+                command.WalletId, fundingResponse.FailureReason);
+            return Result.Failure<TopUpResponse>(Error.Conflict(
+                $"Funding charge failed: {fundingResponse.FailureReason}"));
+        }
+
+        activity?.SetTag("funding.status", "succeeded");
+        activity?.SetTag("funding.transaction.id", fundingResponse.TransactionId);
 
         var correlationId = Guid.NewGuid();
         var externalAccountId = Guid.Empty;
@@ -67,8 +106,8 @@ public class TopUpHandler
         activity?.SetTag("correlation.id", correlationId);
 
         _logger.LogInformation(
-            "Queued top-up of {Amount} {Currency} to wallet {WalletId} (correlation {CorrelationId})",
-            command.Amount, command.Currency, command.WalletId, correlationId);
+            "Queued top-up of {Amount} {Currency} to wallet {WalletId} (correlation {CorrelationId}, funding txn {FundingTxn})",
+            command.Amount, command.Currency, command.WalletId, correlationId, fundingResponse.TransactionId);
 
         return Result.Success(new TopUpResponse
         {

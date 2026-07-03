@@ -6,6 +6,7 @@ public record TopUpCommand
     public decimal Amount { get; init; }
     public string Currency { get; init; } = "GBP";
     public string? Reference { get; init; }
+    public string? IdempotencyKey { get; init; }
 }
 
 public record TopUpResponse
