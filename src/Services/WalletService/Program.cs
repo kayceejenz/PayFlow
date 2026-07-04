@@ -13,6 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddWalletService(
     builder.Configuration.GetConnectionString("WalletDb")!);
 
+builder.Services.AddFundingClient(
+    builder.Configuration["FundingService:BaseUrl"] ?? "http://localhost:5200");
+
 builder.Services.AddPayFlowTelemetry(
     "WalletService",
     builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
