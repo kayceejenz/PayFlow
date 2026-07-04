@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NSubstitute;
 using WalletService.Features.CreateWallet;
 using WalletService.Features.GetWallet;
 using WalletService.Features.UpdateWalletStatus;
@@ -76,6 +77,7 @@ public class ServiceRegistrationTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton(Substitute.For<IFundingServiceClient>());
         services.AddWalletService("Host=localhost;Database=test");
 
         var provider = services.BuildServiceProvider();

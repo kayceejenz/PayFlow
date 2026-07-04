@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/Services/">
+    <Project Path="src/Services/FundingService/FundingService.csproj" />
     <Project Path="src/Services/LedgerService/LedgerService.csproj" />
     <Project Path="src/Services/WalletService/WalletService.csproj" />
     <Project Path="src/Services/PaymentService/PaymentService.csproj" />
@@ -11,6 +12,7 @@
     <Project Path="src/Shared/PayFlow.Shared.Primitives/PayFlow.Shared.Primitives.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/FundingService.Tests/FundingService.Tests.csproj" />
     <Project Path="tests/LedgerService.Tests/LedgerService.Tests.csproj" />
     <Project Path="tests/WalletService.Tests/WalletService.Tests.csproj" />
     <Project Path="tests/PaymentService.Tests/PaymentService.Tests.csproj" />

@@ -208,31 +208,39 @@ public class UpdateWalletStatusHandlerTests
 public class TopUpHandlerTests
 {
     private readonly IWalletRepository _repository;
+    private readonly IFundingServiceClient _fundingClient;
     private readonly TopUpHandler _handler;
 
     public TopUpHandlerTests()
     {
         _repository = Substitute.For<IWalletRepository>();
+        _fundingClient = Substitute.For<IFundingServiceClient>();
         var logger = Substitute.For<ILogger<TopUpHandler>>();
-        _handler = new TopUpHandler(_repository, logger);
+        _handler = new TopUpHandler(_repository, _fundingClient, logger);
     }
 
-    [Fact]
-    public async Task HandleAsync_ValidRequest_ReturnsAccepted()
+    private static Wallet MakeActiveWallet()
     {
-        var walletId = Guid.NewGuid();
-        var wallet = new Wallet
+        return new Wallet
         {
-            Id = walletId,
+            Id = Guid.NewGuid(),
             AccountId = Guid.NewGuid(),
             Status = WalletStatus.Active,
             CreatedAtUtc = DateTime.UtcNow,
             UpdatedAtUtc = DateTime.UtcNow
         };
-        _repository.GetByIdAsync(walletId, Arg.Any<CancellationToken>()).Returns(wallet);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ValidRequest_ReturnsAccepted()
+    {
+        var wallet = MakeActiveWallet();
+        _repository.GetByIdAsync(wallet.Id, Arg.Any<CancellationToken>()).Returns(wallet);
+        _fundingClient.ChargeAsync(Arg.Any<string>(), Arg.Any<FundingChargeRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new FundingChargeResponse { TransactionId = Guid.NewGuid(), Status = "succeeded", Amount = 100, Currency = "GBP" });
 
         var result = await _handler.HandleAsync(
-            new TopUpCommand { WalletId = walletId, Amount = 100, Currency = "GBP" },
+            new TopUpCommand { WalletId = wallet.Id, Amount = 100, Currency = "GBP", IdempotencyKey = "key-1" },
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -321,24 +329,51 @@ public class TopUpHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_SavesOutboxMessage()
+    public async Task HandleAsync_FundingCallFails_ReturnsUnexpectedError()
     {
-        var walletId = Guid.NewGuid();
-        var wallet = new Wallet
-        {
-            Id = walletId,
-            AccountId = Guid.NewGuid(),
-            Status = WalletStatus.Active,
-            CreatedAtUtc = DateTime.UtcNow,
-            UpdatedAtUtc = DateTime.UtcNow
-        };
-        _repository.GetByIdAsync(walletId, Arg.Any<CancellationToken>()).Returns(wallet);
+        var wallet = MakeActiveWallet();
+        _repository.GetByIdAsync(wallet.Id, Arg.Any<CancellationToken>()).Returns(wallet);
+        _fundingClient.ChargeAsync(Arg.Any<string>(), Arg.Any<FundingChargeRequest>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromException<FundingChargeResponse>(new HttpRequestException("Connection refused")));
+
+        var result = await _handler.HandleAsync(
+            new TopUpCommand { WalletId = wallet.Id, Amount = 100, IdempotencyKey = "key-1" },
+            CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("UNEXPECTED", result.Error.Code);
+    }
+
+    [Fact]
+    public async Task HandleAsync_FundingReturnsFailed_ReturnsConflict()
+    {
+        var wallet = MakeActiveWallet();
+        _repository.GetByIdAsync(wallet.Id, Arg.Any<CancellationToken>()).Returns(wallet);
+        _fundingClient.ChargeAsync(Arg.Any<string>(), Arg.Any<FundingChargeRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new FundingChargeResponse { TransactionId = Guid.NewGuid(), Status = "failed", Amount = 100, Currency = "GBP", FailureReason = "Insufficient funds" });
+
+        var result = await _handler.HandleAsync(
+            new TopUpCommand { WalletId = wallet.Id, Amount = 100, IdempotencyKey = "key-1" },
+            CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("CONFLICT", result.Error.Code);
+        Assert.Contains("Insufficient funds", result.Error.Message);
+    }
+
+    [Fact]
+    public async Task HandleAsync_FundingSucceeds_SavesOutboxMessage()
+    {
+        var wallet = MakeActiveWallet();
+        _repository.GetByIdAsync(wallet.Id, Arg.Any<CancellationToken>()).Returns(wallet);
+        _fundingClient.ChargeAsync(Arg.Any<string>(), Arg.Any<FundingChargeRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new FundingChargeResponse { TransactionId = Guid.NewGuid(), Status = "succeeded", Amount = 100, Currency = "GBP" });
 
         OutboxMessage? capturedMessage = null;
         await _repository.SaveOutboxMessageAsync(Arg.Do<OutboxMessage>(m => capturedMessage = m), Arg.Any<CancellationToken>());
 
         var result = await _handler.HandleAsync(
-            new TopUpCommand { WalletId = walletId, Amount = 100, Currency = "GBP", Reference = "test-topup" },
+            new TopUpCommand { WalletId = wallet.Id, Amount = 100, Currency = "GBP", Reference = "test-topup", IdempotencyKey = "key-1" },
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -346,6 +381,23 @@ public class TopUpHandlerTests
         Assert.Equal(result.Value.CorrelationId, capturedMessage.CorrelationId);
         Assert.Contains("CreateLedgerEntryCommand", capturedMessage.Type);
         Assert.NotEmpty(capturedMessage.Payload);
+    }
+
+    [Fact]
+    public async Task HandleAsync_PassesIdempotencyKeyToFundingClient()
+    {
+        var wallet = MakeActiveWallet();
+        _repository.GetByIdAsync(wallet.Id, Arg.Any<CancellationToken>()).Returns(wallet);
+
+        string? capturedKey = null;
+        _fundingClient.ChargeAsync(Arg.Do<string>(k => capturedKey = k), Arg.Any<FundingChargeRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new FundingChargeResponse { TransactionId = Guid.NewGuid(), Status = "succeeded", Amount = 100, Currency = "GBP" });
+
+        await _handler.HandleAsync(
+            new TopUpCommand { WalletId = wallet.Id, Amount = 100, IdempotencyKey = "my-custom-key" },
+            CancellationToken.None);
+
+        Assert.Equal("my-custom-key", capturedKey);
     }
 }
 
