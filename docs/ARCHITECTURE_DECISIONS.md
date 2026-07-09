@@ -45,3 +45,22 @@ This decision checks three deliverables at once: async event-driven communicatio
 
 **Tradeoff:**
 Clients receive `202 Accepted` with a correlation ID and must poll for completion. Not suitable for synchronous low-latency flows, but acceptable for top-ups and transfers where clients expect an async confirmation. Adds infrastructure complexity (outbox table, background relay, eventual consistency guarantees).
+
+### 003: Purely Event-Driven Fan-Out Notifications (No DB)
+
+**Date:** 2026-07-09
+
+**Context:**
+NotificationService exists to demonstrate eventual consistency / fan-out from ledger events. It needs to react to `LedgerEntryCreatedEvent` and `LedgerEntryFailedEvent` and simulate sending email and push notifications. The `notification_service` database was pre-created in the Docker init script.
+
+**Options considered:**
+
+1. **Store notifications in PostgreSQL:** EF Core + repository pattern matching other services. Adds operational complexity (migrations, connection pool) for a service whose only job is logging simulated notifications.
+
+2. **Pure fan-out consumer (chosen):** No database. Consumers log structured "Sending email notification..." and "Sending push notification..." messages. The simulated notifications are observable via structured logs and OpenTelemetry traces.
+
+**Why:**
+NotificationService is intentionally the simplest service — it proves the event-driven architecture works (adding a new consumer requires zero changes to producers) without unnecessary infrastructure. The fan-out pattern is demonstrated by the fact that NotificationService subscribes to the same events as WalletService's consumers but operates independently. If notification delivery were real, a dedicated notification infrastructure (SendGrid, Firebase, etc.) would back it, not a database.
+
+**Tradeoff:**
+No persisted notification history. For a production system you would store notification status (sent/failed/retrying) in a database. As a pattern demonstration, the tradeoff is acceptable — the fan-out architecture, not the storage, is the point.
