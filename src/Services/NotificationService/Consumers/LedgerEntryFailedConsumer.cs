@@ -1,5 +1,6 @@
 using MassTransit;
 using PayFlow.Shared.Messaging;
+using PayFlow.Shared.Observability;
 
 namespace NotificationService.Consumers;
 
@@ -15,6 +16,11 @@ public class LedgerEntryFailedConsumer : IConsumer<LedgerEntryFailedEvent>
     public Task Consume(ConsumeContext<LedgerEntryFailedEvent> context)
     {
         var msg = context.Message;
+
+        using var activity = Telemetry.ActivitySource.StartActivity("NotificationFailed");
+        activity?.SetTag("error.code", msg.ErrorCode);
+        activity?.SetTag("error.message", msg.ErrorMessage);
+        activity?.SetTag("correlation.id", msg.CorrelationId);
 
         _logger.LogWarning(
             "Sending email notification — entry failed: {ErrorCode}: {ErrorMessage}, correlation {CorrelationId}",
