@@ -4,6 +4,7 @@
     <Project Path="src/Services/FundingService/FundingService.csproj" />
     <Project Path="src/Services/LedgerService/LedgerService.csproj" />
     <Project Path="src/Services/WalletService/WalletService.csproj" />
+    <Project Path="src/Services/NotificationService/NotificationService.csproj" />
     <Project Path="src/Services/PaymentService/PaymentService.csproj" />
   </Folder>
   <Folder Name="/src/Shared/">
@@ -15,6 +16,7 @@
     <Project Path="tests/FundingService.Tests/FundingService.Tests.csproj" />
     <Project Path="tests/LedgerService.Tests/LedgerService.Tests.csproj" />
     <Project Path="tests/WalletService.Tests/WalletService.Tests.csproj" />
+    <Project Path="tests/NotificationService.Tests/NotificationService.Tests.csproj" />
     <Project Path="tests/PaymentService.Tests/PaymentService.Tests.csproj" />
   </Folder>
 </Solution>
