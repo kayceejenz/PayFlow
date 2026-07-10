@@ -55,6 +55,25 @@ public class LedgerEntryCreatedConsumerTests
 
         Assert.Null(exception);
     }
+
+    [Fact]
+    public async Task Consume_LogsExpectedMessagePatterns()
+    {
+        var context = Substitute.For<ConsumeContext<LedgerEntryCreatedEvent>>();
+        context.Message.Returns(new LedgerEntryCreatedEvent
+        {
+            TransactionId = Guid.NewGuid(),
+            Amount = 75,
+            Currency = "GBP",
+            CorrelationId = "corr-3"
+        });
+
+        await _consumer.Consume(context);
+
+        var calls = _logger.ReceivedCalls().ToList();
+        Assert.Contains(calls, c => c.GetArguments()?[2]?.ToString()?.Contains("email notification") == true);
+        Assert.Contains(calls, c => c.GetArguments()?[2]?.ToString()?.Contains("push notification") == true);
+    }
 }
 
 public class LedgerEntryFailedConsumerTests
@@ -103,5 +122,24 @@ public class LedgerEntryFailedConsumerTests
         var exception = await Record.ExceptionAsync(() => _consumer.Consume(context));
 
         Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task Consume_LogsExpectedMessagePatterns()
+    {
+        var context = Substitute.For<ConsumeContext<LedgerEntryFailedEvent>>();
+        context.Message.Returns(new LedgerEntryFailedEvent
+        {
+            ErrorCode = "TIMEOUT",
+            ErrorMessage = "Gateway timeout",
+            CorrelationId = "corr-3"
+        });
+
+        await _consumer.Consume(context);
+
+        var calls = _logger.ReceivedCalls().ToList();
+        Assert.Contains(calls, c => c.GetArguments()?[2]?.ToString()?.Contains("email notification") == true);
+        Assert.Contains(calls, c => c.GetArguments()?[2]?.ToString()?.Contains("push notification") == true);
+        Assert.Contains(calls, c => c.GetArguments()?[2]?.ToString()?.Contains("TIMEOUT") == true);
     }
 }
