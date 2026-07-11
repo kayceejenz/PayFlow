@@ -1,4 +1,5 @@
 using MassTransit;
+using NotificationService.Domain;
 using PayFlow.Shared.Messaging;
 using PayFlow.Shared.Observability;
 
