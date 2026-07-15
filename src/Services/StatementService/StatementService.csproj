@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\PayFlow.Shared.Primitives\PayFlow.Shared.Primitives.csproj" />
+    <ProjectReference Include="..\..\Shared\PayFlow.Shared.Messaging\PayFlow.Shared.Messaging.csproj" />
+    <ProjectReference Include="..\..\Shared\PayFlow.Shared.Observability\PayFlow.Shared.Observability.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.3.2" />
+  </ItemGroup>
+  <PropertyGroup>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+  </PropertyGroup>
+</Project>
