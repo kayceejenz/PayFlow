@@ -9,4 +9,5 @@ public record LedgerEntryCreatedEvent : IntegrationEvent
     public Guid CreditAccountId { get; init; }
     public decimal Amount { get; init; }
     public string Currency { get; init; } = string.Empty;
+    public string? Reference { get; init; }
 }

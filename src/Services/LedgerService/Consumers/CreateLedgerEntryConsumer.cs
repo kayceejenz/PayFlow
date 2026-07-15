@@ -54,7 +54,8 @@ public class CreateLedgerEntryConsumer : IConsumer<CreateLedgerEntryCommand>
                 DebitAccountId = context.Message.DebitAccountId,
                 CreditAccountId = context.Message.CreditAccountId,
                 Amount = context.Message.Amount,
-                Currency = context.Message.Currency
+                Currency = context.Message.Currency,
+                Reference = context.Message.Reference
             }, context.CancellationToken);
 
             _logger.LogInformation(
