@@ -7,6 +7,7 @@
     <Project Path="src/Services/NotificationService/NotificationService.csproj" />
     <Project Path="src/Services/PaymentService/PaymentService.csproj" />
     <Project Path="src/Services/StatementService/StatementService.csproj" />
+    <Project Path="src/Services/ApiGateway/ApiGateway.csproj" />
   </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/PayFlow.Shared.Messaging/PayFlow.Shared.Messaging.csproj" />
@@ -20,5 +21,6 @@
     <Project Path="tests/NotificationService.Tests/NotificationService.Tests.csproj" />
     <Project Path="tests/PaymentService.Tests/PaymentService.Tests.csproj" />
     <Project Path="tests/StatementService.Tests/StatementService.Tests.csproj" />
+    <Project Path="tests/ApiGateway.Tests/ApiGateway.Tests.csproj" />
   </Folder>
 </Solution>
