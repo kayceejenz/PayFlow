@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using FundingService.Features.Charge;
@@ -44,6 +45,38 @@ public class ChargeHandlerTests
         Assert.Equal(cached.TransactionId, result.Value.TransactionId);
         Assert.Equal("succeeded", result.Value.Status);
     }
+
+[Fact]
+public async Task HandleAsync_DoubleFireWithSameKey_ReturnsCachedResultOnce()
+{
+    var callCount = 0;
+    ChargeResponse? cached = null;
+    _store.GetAsync("key-double", Arg.Any<CancellationToken>())
+        .Returns(_ => cached);
+    _store.When(x => x.SetAsync("key-double", Arg.Any<ChargeResponse>(), Arg.Any<CancellationToken>()))
+        .Do(callInfo => { cached = callInfo.ArgAt<ChargeResponse>(1); Interlocked.Increment(ref callCount); });
+
+    var result1 = await _handler.HandleAsync("key-double", new ChargeCommand { Amount = 100 }, CancellationToken.None);
+    var result2 = await _handler.HandleAsync("key-double", new ChargeCommand { Amount = 100 }, CancellationToken.None);
+
+    Assert.True(result1.IsSuccess);
+    Assert.True(result2.IsSuccess);
+    Assert.Equal(result1.Value.TransactionId, result2.Value.TransactionId);
+    Assert.Equal(1, callCount);
+}
+
+[Fact]
+public async Task HandleAsync_DifferentKeys_ExecuteIndependently()
+{
+    _store.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((ChargeResponse?)null);
+
+    var result1 = await _handler.HandleAsync("key-a", new ChargeCommand { Amount = 50 }, CancellationToken.None);
+    var result2 = await _handler.HandleAsync("key-b", new ChargeCommand { Amount = 100 }, CancellationToken.None);
+
+    Assert.True(result1.IsSuccess);
+    Assert.True(result2.IsSuccess);
+    Assert.NotEqual(result1.Value.TransactionId, result2.Value.TransactionId);
+}
 
 [Fact]
 public async Task HandleAsync_StoresResultInIdempotencyStore()

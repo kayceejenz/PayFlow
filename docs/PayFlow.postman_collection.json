@@ -1,0 +1,373 @@
+{
+  "info": {
+    "name": "PayFlow API Gateway",
+    "description": "Complete API documentation for PayFlow — an event-sourced, saga-orchestrated wallet and payments platform.\n\nAll requests go through the ApiGateway at {{baseUrl}}. Every mutating request (POST, PUT, PATCH, DELETE) requires an Idempotency-Key header (a UUID).\n\nAuthentication: X-Api-Key header (default: payflow-demo-key)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5600",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "payflow-demo-key",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Utility",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Health check endpoint — bypasses API key authentication."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ledger Service",
+      "description": "Event-sourced double-entry ledger. Create entries, get balances, view transaction history. Port 5001.",
+      "item": [
+        {
+          "name": "Create Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}", "description": "Required on all mutating requests. Use a new UUID for each unique operation." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionId\": \"{{$guid}}\",\n  \"accountId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"entryType\": \"debit\",\n  \"amount\": 50.00,\n  \"currency\": \"GBP\",\n  \"reference\": \"payment-ref-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ledger/entries",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ledger", "entries"]
+            },
+            "description": "Create a single ledger entry (debit or credit) for a given account."
+          }
+        },
+        {
+          "name": "Create Double-Entry Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}", "description": "Required on all mutating requests." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"debitAccountId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"creditAccountId\": \"4fa85f64-5717-4562-b3fc-2c963f66afa7\",\n  \"amount\": 100.00,\n  \"currency\": \"GBP\",\n  \"reference\": \"transfer-ref-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ledger/transactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ledger", "transactions"]
+            },
+            "description": "Create a balanced double-entry pair (debit + credit) atomically. The sum of all entries must be zero."
+          }
+        },
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ledger/accounts/3fa85f64-5717-4562-b3fc-2c963f66afa6/balance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ledger", "accounts", "3fa85f64-5717-4562-b3fc-2c963f66afa6", "balance"]
+            },
+            "description": "Get current balance for an account. Balance = sum of all credits minus sum of all debits."
+          }
+        },
+        {
+          "name": "Get Transaction History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ledger/accounts/3fa85f64-5717-4562-b3fc-2c963f66afa6/transactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ledger", "accounts", "3fa85f64-5717-4562-b3fc-2c963f66afa6", "transactions"]
+            },
+            "description": "Get chronological transaction history for an account. Returns all debit and credit entries."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet Service",
+      "description": "Wallet lifecycle and orchestration. Create wallets, top up, transfer between wallets. Port 5002.",
+      "item": [
+        {
+          "name": "Create Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}", "description": "Required on all mutating requests." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/wallets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "wallets"]
+            },
+            "description": "Create a new wallet with an associated ledger account. Status defaults to Active."
+          }
+        },
+        {
+          "name": "Get Wallet",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/wallets/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "wallets", "3fa85f64-5717-4562-b3fc-2c963f66afa6"]
+            },
+            "description": "Get wallet details including AccountId and current status."
+          }
+        },
+        {
+          "name": "Update Wallet Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}", "description": "Required on all mutating requests." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Frozen\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/wallets/3fa85f64-5717-4562-b3fc-2c963f66afa6/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "wallets", "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status"]
+            },
+            "description": "Update wallet status. Valid transitions: Active to Frozen, Frozen to Active, Active to Closed."
+          }
+        },
+        {
+          "name": "Top Up",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}", "description": "Required for funding deduplication." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00,\n  \"currency\": \"GBP\",\n  \"reference\": \"topup-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/wallets/3fa85f64-5717-4562-b3fc-2c963f66afa6/top-up",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "wallets", "3fa85f64-5717-4562-b3fc-2c963f66afa6", "top-up"]
+            },
+            "description": "Initiate async top-up from external funding source. Uses the outbox pattern — returns 202 Accepted with a CorrelationId. The Idempotency-Key header is passed to the FundingService for deduplication."
+          }
+        },
+        {
+          "name": "Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}", "description": "Required on all mutating requests." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destinationWalletId\": \"4fa85f64-5717-4562-b3fc-2c963f66afa7\",\n  \"amount\": 25.00,\n  \"currency\": \"GBP\",\n  \"reference\": \"transfer-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/wallets/3fa85f64-5717-4562-b3fc-2c963f66afa6/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "wallets", "3fa85f64-5717-4562-b3fc-2c963f66afa6", "transfer"]
+            },
+            "description": "Initiate async transfer from this wallet to another wallet. Uses the outbox pattern — returns 202 Accepted with a CorrelationId."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Service",
+      "description": "Merchant payment saga. Authorize (hold), capture, or release payments with compensating transactions. Port 5003.",
+      "item": [
+        {
+          "name": "Authorize Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}", "description": "Required on all mutating requests." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payerAccountId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"merchantAccountId\": \"4fa85f64-5717-4562-b3fc-2c963f66afa7\",\n  \"amount\": 75.00,\n  \"currency\": \"GBP\",\n  \"reference\": \"order-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payment/payments/authorize",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment", "payments", "authorize"]
+            },
+            "description": "Authorize a payment — places a hold on the payer's funds via the HoldsAccount. Returns PaymentId for subsequent capture or release."
+          }
+        },
+        {
+          "name": "Capture Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}", "description": "Required on all mutating requests." }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment/payments/3fa85f64-5717-4562-b3fc-2c963f66afa6/capture",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment", "payments", "3fa85f64-5717-4562-b3fc-2c963f66afa6", "capture"]
+            },
+            "description": "Capture an authorized payment — moves funds from the holds account to the merchant account. Only valid for payments in Authorized status."
+          }
+        },
+        {
+          "name": "Release Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}", "description": "Required on all mutating requests." }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment/payments/3fa85f64-5717-4562-b3fc-2c963f66afa6/release",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment", "payments", "3fa85f64-5717-4562-b3fc-2c963f66afa6", "release"]
+            },
+            "description": "Release an authorized hold (compensating transaction) — returns funds from the holds account to the payer. Only valid for payments in Authorized status."
+          }
+        },
+        {
+          "name": "Get Payment",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment/payments/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment", "payments", "3fa85f64-5717-4562-b3fc-2c963f66afa6"]
+            },
+            "description": "Get the current status of a payment. Use after async operations to poll for completion."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Funding Service",
+      "description": "Simulated external card processor with configurable failure rate (default 30%). Requires Idempotency-Key header. Port 5004.",
+      "item": [
+        {
+          "name": "Charge",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}", "description": "Required. Used for deduplication — same key returns cached response." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00,\n  \"currency\": \"GBP\",\n  \"reference\": \"charge-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/funding/funding/charge",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "funding", "funding", "charge"]
+            },
+            "description": "Simulate charging an external funding source. Has a configurable failure rate (set via FundingFailureRate env var). Use the same Idempotency-Key to test deduplication."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Statement Service",
+      "description": "CQRS read model. Query paginated transaction statements for a wallet. Port 5006.",
+      "item": [
+        {
+          "name": "Get Statements",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/statement/api/statements/3fa85f64-5717-4562-b3fc-2c963f66afa6?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "statement", "api", "statements", "3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "20" }
+              ]
+            },
+            "description": "Get paginated transaction statement for a wallet. Each transaction creates two entries (debit side and credit side). Supports pagination via page and pageSize query parameters."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notification Service",
+      "description": "Fan-out notification consumer. No business endpoints — listens to ledger events and simulates email/push alerts. Port 5005.",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notification/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notification", "health"]
+            },
+            "description": "Health check for the Notification Service. Note: this service has no business endpoints — it is purely an event consumer."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -27,21 +27,6 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new()
-    {
-        Title = "PayFlow API Gateway",
-        Description = "Single entry point for all PayFlow services — enforces idempotency, API key auth, and rate limiting.",
-        Version = "v1",
-        Contact = new()
-        {
-            Name = "PayFlow Team",
-            Email = "team@payflow.dev"
-        }
-    });
-});
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
@@ -51,23 +36,10 @@ app.UseRateLimiter();
 app.UseMiddleware<ApiKeyAuthMiddleware>();
 app.UseMiddleware<IdempotencyKeyMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
 app.UseExceptionHandler();
 app.UseStatusCodePages();
-app.UseSwagger();
-app.UseSwaggerUI();
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "ApiGateway" }))
-   .WithName("HealthCheck")
-   .WithTags("System")
-   .WithSummary("Health check endpoint")
-   .WithDescription("Returns the current health status of the ApiGateway.")
-   .Produces(StatusCodes.Status200OK);
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "ApiGateway" }));
 
 app.MapReverseProxy();
 

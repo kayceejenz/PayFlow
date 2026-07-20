@@ -560,4 +560,76 @@ public class TransferHandlerTests
         Assert.True(result.IsFailure);
         Assert.Equal("CONFLICT", result.Error.Code);
     }
+
+    [Fact]
+    public async Task HandleAsync_ConcurrentTransfers_AllCompleteSuccessfully()
+    {
+        var sourceId = Guid.NewGuid();
+        var destId = Guid.NewGuid();
+        var sourceWallet = new Wallet
+        {
+            Id = sourceId,
+            AccountId = Guid.NewGuid(),
+            Status = WalletStatus.Active,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+        var destWallet = new Wallet
+        {
+            Id = destId,
+            AccountId = Guid.NewGuid(),
+            Status = WalletStatus.Active,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+        _repository.GetByIdAsync(sourceId, Arg.Any<CancellationToken>()).Returns(sourceWallet);
+        _repository.GetByIdAsync(destId, Arg.Any<CancellationToken>()).Returns(destWallet);
+
+        var tasks = Enumerable.Range(0, 5).Select(i =>
+            _handler.HandleAsync(
+                new TransferCommand { WalletId = sourceId, DestinationWalletId = destId, Amount = 10 },
+                CancellationToken.None));
+
+        var results = await Task.WhenAll(tasks);
+
+        Assert.All(results, r => Assert.True(r.IsSuccess));
+        Assert.Equal(5, results.Length);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ConcurrentTransfersToDifferentWallets_AllSucceed()
+    {
+        var sourceId = Guid.NewGuid();
+        var sourceWallet = new Wallet
+        {
+            Id = sourceId,
+            AccountId = Guid.NewGuid(),
+            Status = WalletStatus.Active,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+        _repository.GetByIdAsync(sourceId, Arg.Any<CancellationToken>()).Returns(sourceWallet);
+
+        var tasks = Enumerable.Range(0, 3).Select(i =>
+        {
+            var destId = Guid.NewGuid();
+            var destWallet = new Wallet
+            {
+                Id = destId,
+                AccountId = Guid.NewGuid(),
+                Status = WalletStatus.Active,
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow
+            };
+            _repository.GetByIdAsync(destId, Arg.Any<CancellationToken>()).Returns(destWallet);
+
+            return _handler.HandleAsync(
+                new TransferCommand { WalletId = sourceId, DestinationWalletId = destId, Amount = 10 },
+                CancellationToken.None);
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        Assert.All(results, r => Assert.True(r.IsSuccess));
+    }
 }

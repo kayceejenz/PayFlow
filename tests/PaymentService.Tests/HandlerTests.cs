@@ -391,6 +391,71 @@ public class ReleasePaymentHandlerTests
         Assert.Contains("CreateLedgerEntryCommand", capturedMessage.Type);
         Assert.NotEmpty(capturedMessage.Payload);
     }
+
+    [Fact]
+    public async Task HandleAsync_SagaAuthorizeThenRelease_CompensatesCorrectly()
+    {
+        var payerAccountId = Guid.NewGuid();
+        var merchantAccountId = Guid.NewGuid();
+
+        var authResult = await new AuthorizePaymentHandler(
+            _repository, Substitute.For<ILogger<AuthorizePaymentHandler>>()).HandleAsync(
+            new AuthorizePaymentCommand
+            {
+                PayerAccountId = payerAccountId,
+                MerchantAccountId = merchantAccountId,
+                Amount = 100,
+                Currency = "GBP"
+            },
+            CancellationToken.None);
+
+        Assert.True(authResult.IsSuccess);
+        var paymentId = authResult.Value.PaymentId;
+
+        var payment = new Payment
+        {
+            Id = paymentId,
+            PayerAccountId = payerAccountId,
+            MerchantAccountId = merchantAccountId,
+            Amount = 100,
+            Status = PaymentStatus.Authorized,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+        _repository.GetByIdAsync(paymentId, Arg.Any<CancellationToken>()).Returns(payment);
+
+        var releaseResult = await _handler.HandleAsync(
+            new ReleasePaymentCommand { PaymentId = paymentId },
+            CancellationToken.None);
+
+        Assert.True(releaseResult.IsSuccess);
+        Assert.Equal("processing_release", releaseResult.Value.Status);
+        Assert.Equal(PaymentStatus.ProcessingRelease, payment.Status);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ReleasingAlreadyReleasedPayment_ReturnsConflict()
+    {
+        var paymentId = Guid.NewGuid();
+        var payment = new Payment
+        {
+            Id = paymentId,
+            PayerAccountId = Guid.NewGuid(),
+            MerchantAccountId = Guid.NewGuid(),
+            Amount = 100,
+            Status = PaymentStatus.Released,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+        _repository.GetByIdAsync(paymentId, Arg.Any<CancellationToken>()).Returns(payment);
+
+        var result = await _handler.HandleAsync(
+            new ReleasePaymentCommand { PaymentId = paymentId },
+            CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("CONFLICT", result.Error.Code);
+    }
 }
 
 public class GetPaymentHandlerTests

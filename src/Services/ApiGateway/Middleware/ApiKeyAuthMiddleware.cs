@@ -14,7 +14,9 @@ public class ApiKeyAuthMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase))
+        var path = context.Request.Path.Value;
+        if (path != null && (path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
+                             path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)))
         {
             await _next(context);
             return;
