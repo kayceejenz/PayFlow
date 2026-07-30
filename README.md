@@ -1,5 +1,31 @@
 # PayFlow: Real-Time Payments & Ledger Platform
 
+## Table of Contents
+
+- [What Is PayFlow](#what-is-payflow)
+  - [Scope](#scope)
+- [Architecture](#architecture)
+- [Architecture Decisions](#architecture-decisions)
+- [Inter-Service Communication](#inter-service-communication)
+  - [Event Flow](#event-flow-async-via-outbox-and-rabbitmq)
+  - [The Payment Saga](#the-payment-saga)
+  - [Idempotency](#idempotency)
+  - [Resilience](#resilience)
+- [API Reference](#api-reference)
+  - [Gateway Routes](#gateway-routes)
+  - [LedgerService](#ledgerservice)
+  - [WalletService](#walletservice)
+  - [PaymentService](#paymentservice)
+  - [FundingService](#fundingservice)
+  - [StatementService](#statementservice)
+  - [Health](#health)
+- [Quick Start](#quick-start)
+  - [Default URLs and Credentials](#default-urls-and-credentials)
+- [Tests](#tests)
+  - [Three Critical Tests](#three-critical-tests)
+
+---
+
 ## What Is PayFlow?
 
 An event-sourced, saga-orchestrated wallet and payments platform demonstrating production-grade fintech engineering patterns demonstrating idempotent APIs, double-entry ledger, outbox-based event publishing, CQRS, distributed tracing, and configurable resilience against a deliberately flaky funding source.
